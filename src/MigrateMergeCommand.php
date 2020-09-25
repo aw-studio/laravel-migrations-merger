@@ -82,8 +82,6 @@ class MigrateMergeCommand extends BaseCommand
                 return $this->files->glob($path.'/*.php');
             })->toArray();
 
-        dump($files);
-
         $this->migrator->requireFiles(
             $files = $this->migrator->getMigrationFiles($files)
         );
@@ -125,6 +123,7 @@ class MigrateMergeCommand extends BaseCommand
             } catch (QueryException $e) {
                 continue;
             }
+            dump("[DB]: Added column ($column->name) to $table");
             $this->info("[DB]: Added column ($column->name) to $table");
         }
     }
