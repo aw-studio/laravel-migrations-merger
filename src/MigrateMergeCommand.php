@@ -122,6 +122,7 @@ class MigrateMergeCommand extends BaseCommand
                     fn (Blueprint $schema) => $this->setUnaccessibleProperty($schema, 'columns', [$column])
                 );
             } catch (QueryException $e) {
+                dump($e->getMessage());
                 continue;
             }
             dump("[DB]: Added column ($column->name) to $table");
