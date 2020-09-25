@@ -111,6 +111,7 @@ class MigrateMergeCommand extends BaseCommand
         $closure($schema = new Blueprint($table));
 
         foreach ($columns = $schema->getColumns() as $key => $column) {
+            dump($column);
             if (array_key_exists($key - 1, $columns)) {
                 $column->after($columns[$key - 1]->name);
             }
