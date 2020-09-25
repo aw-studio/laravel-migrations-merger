@@ -116,12 +116,14 @@ class MigrateMergeCommand extends BaseCommand
                 $column->after($columns[$key - 1]->name);
             }
 
+            $method = fn (Blueprint $schema) => $this->setUnaccessibleProperty(
+                $schema, 'columns', [$column]
+            );
+
             try {
-                $this->schema->table(
-                    $table,
-                    fn (Blueprint $schema) => $this->setUnaccessibleProperty($schema, 'columns', [$column])
-                );
+                $this->schema->table($table, $method);
             } catch (QueryException $e) {
+                dump($e->getMessage());
                 if (! Str::contains($e->getMessage(), 'duplicate column name:')) {
                     throw $e;
                 }
