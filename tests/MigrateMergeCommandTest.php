@@ -31,6 +31,9 @@ class MigrateMergeCommandTest extends TestCase
         $this->artisan('migrate:merge');
 
         $cols = Schema::getColumnListing('users');
+        dump($cols);
+
+        return;
         $this->assertContains('email', $cols);
     }
 }
