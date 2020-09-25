@@ -10,6 +10,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use ReflectionProperty;
 
 class MigrateMergeCommand extends BaseCommand
@@ -111,7 +112,6 @@ class MigrateMergeCommand extends BaseCommand
         $closure($schema = new Blueprint($table));
 
         foreach ($columns = $schema->getColumns() as $key => $column) {
-            dump($column);
             if (array_key_exists($key - 1, $columns)) {
                 $column->after($columns[$key - 1]->name);
             }
@@ -122,10 +122,12 @@ class MigrateMergeCommand extends BaseCommand
                     fn (Blueprint $schema) => $this->setUnaccessibleProperty($schema, 'columns', [$column])
                 );
             } catch (QueryException $e) {
-                dump($e->getMessage());
+                if (! Str::contains($e->getMessage(), 'duplicate column name:')) {
+                    throw $e;
+                }
+
                 continue;
             }
-            dump("[DB]: Added column ($column->name) to $table");
             $this->info("[DB]: Added column ($column->name) to $table");
         }
     }
