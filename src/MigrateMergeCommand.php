@@ -2,16 +2,11 @@
 
 namespace AwStudio\MigrationsMerger;
 
-use Closure;
 use Illuminate\Database\Console\Migrations\BaseCommand;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Migrations\Migrator;
-use Illuminate\Database\QueryException;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
-use ReflectionProperty;
 
 class MigrateMergeCommand extends BaseCommand
 {
@@ -87,7 +82,9 @@ class MigrateMergeCommand extends BaseCommand
             $files = $this->migrator->getMigrationFiles($files)
         );
 
-        $this->laravel->bind('db', fn () => $this);
+        $mock = new SchemaMock($this->schema, $this);
+
+        $this->laravel->bind('db', fn () => $mock);
 
         foreach ($files as $file) {
             $migration = $this->migrator->resolve(
@@ -98,100 +95,5 @@ class MigrateMergeCommand extends BaseCommand
         }
 
         $this->laravel->bind('db', fn () => $this->db);
-    }
-
-    /**
-     * Schema create method mock.
-     *
-     * @param  string  $table
-     * @param  Closure $closure
-     * @return void
-     */
-    public function create($table, Closure $closure)
-    {
-        $closure($schema = new Blueprint($table));
-
-        foreach ($columns = $schema->getColumns() as $key => $column) {
-            if (array_key_exists($key - 1, $columns)) {
-                $column->after($columns[$key - 1]->name);
-            }
-
-            $method = fn (Blueprint $schema) => $this->setUnaccessibleProperty(
-                $schema, 'columns', [$column]
-            );
-
-            try {
-                $this->schema->table($table, $method);
-            } catch (QueryException $e) {
-                dump($e->getMessage());
-                if (! Str::contains($e->getMessage(), 'duplicate column name:')) {
-                    throw $e;
-                }
-
-                continue;
-            }
-            $this->info("[DB]: Added column ($column->name) to $table");
-        }
-    }
-
-    /**
-     * Get connection.
-     *
-     * @return void
-     */
-    public function connection()
-    {
-        return $this;
-    }
-
-    /**
-     * Get schema builder.
-     *
-     * @return void
-     */
-    public function getSchemaBuilder()
-    {
-        return $this;
-    }
-
-    /**
-     * Schema table method mock.
-     *
-     * @param  string $headers
-     * @param  array  $rows
-     * @param  string $tableStyle
-     * @param  array  $columnStyles
-     * @return void
-     */
-    public function table($headers, $rows, $tableStyle = 'default', array $columnStyles = [])
-    {
-        // return $this->schema->table($headers, $rows);
-    }
-
-    /**
-     * Set protected or private class property value.
-     *
-     * @param  mixed  $instance
-     * @param  string $property
-     * @param  mixed  $value
-     * @return void
-     */
-    protected function setUnaccessibleProperty($instance, string $property, $value)
-    {
-        $reflection = new ReflectionProperty(get_class($instance), $property);
-        $reflection->setAccessible(true);
-        $value = $reflection->setValue($instance, $value);
-    }
-
-    /**
-     * Call method.
-     *
-     * @param  string $method
-     * @param  array  $arguments
-     * @return mixed
-     */
-    public function __call($method, $arguments)
-    {
-        return $this->forwardCallTo($this->schema, $method, $arguments);
     }
 }
